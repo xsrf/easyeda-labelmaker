@@ -1,0 +1,14 @@
+{
+	"name": "Label Maker",
+	"description": "Creates awesome shaped labels",
+	"version": "1.0",
+	"homepage": "https://github.com/xsrf/easyeda-labelmaker",
+	"icons": {
+		"default": "icon.svg"
+	},
+	"scripts": [ 
+		"paper-full.min.js",
+		"loadfonts.js",
+		"main.js" 
+	]
+}
