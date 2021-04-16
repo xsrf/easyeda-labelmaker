@@ -4,7 +4,7 @@ EasyEDA Label Maker
 <img src="media/preview.png" alt="Screenshot of the Label Maker dialog and some labels"/>
 
 ## Installation
-1) Download/clone this repository or download the [latest release](https://github.com/xsrf/easyeda-labelmaker/releases) and extract the files to your harddisk (temporary)
+1) Download the [latest extension.zip from releases](https://github.com/xsrf/easyeda-labelmaker/releases) and extract the files to your harddisk (temporary)
 1) Open [EasyEDA](https://easyeda.com/editor) in Browser or Desktop
 1) In EasyEDA go to "Advanced" > "Extensions" > "Extensions Settings ..." > "Load Extension..." > "Select Files ..."
 1) Select all files from the "extension" directory of your extracted download and hit "Load Extension"
