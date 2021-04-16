@@ -1,14 +1,14 @@
 const extensionId = 'extension-labelmaker-id'.split('-')[1]; // this format is needed to set the Extension ID during install
-const manifest = easyeda.extension.instances[extensionId].manifest;
-var extension = easyeda.extension.instances[extensionId];
+const instance = easyeda.extension.instances[extensionId];
+const manifest = instance.manifest;
+const Helper = instance.Helper; // Helper class declared in easyeda-helper.js
+const createCommand = Helper.createCommand;
+const setConfig = Helper.setConfig;
+const getConfig = Helper.getConfig;
+const paper = instance.paper;
+var opentypeFontCache = new Array();
 
-function createCommand(callback) {
-	id = 'extension-'+extensionId+'-' + Math.round(Math.random()*1e9);
-	cmd=[];
-	cmd[id] = callback;
-	api('createCommand', cmd);
-	return id;
-}
+var cmdVisitGithub = createCommand(()=>{ window.open(manifest.homepage,'_blank'); });
 
 api('createToolbarButton', {
 	fordoctype: 'pcb,pcblib',
@@ -18,6 +18,7 @@ api('createToolbarButton', {
 			cmd: createCommand(()=>{ labeldlg.dialog('open'); labeldlg.dialog('expand'); reloadFontList(); previewLabel(); }),
 			title: 'Open Dialog for Label Maker',
 		},
+		{},
 		{
 			text: "Manage Fonts",
 			cmd: createCommand(()=>{ labeldlg.dialog('close'); api('doCommand','fontsManagement'); }),
@@ -25,8 +26,14 @@ api('createToolbarButton', {
 		},
 		{
 			text: "Rebuild Fonts Cache",
-			cmd: createCommand(()=>{ extension.updateFontsCache(); }),
+			cmd: createCommand(()=>{ labeldlg.dialog('close'); updateFontsCache(); }),
 			title: 'Rebuild the Fonts Cache - required after adding Fonts to EasyEDA',
+		},
+		{},
+		{
+			text: "Visit GitHub Page",
+			cmd: cmdVisitGithub,
+			icon: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABGdBTUEAAK/INwWK6QAAABl0RVh0U29mdHdhcmUAQWRvYmUgSW1hZ2VSZWFkeXHJZTwAAAFxSURBVHjajNPNK0RhFMfxe2dI04y8NExNNmzJ2igRWwtlRRllryz8DVhYiKLZaHbyWv4ALyHCgvwBQyEW5GVhphDfU7+rJ0n31Gfufe4959w7z3MfP1VX7/2KLgygHQ26doNDLGHXTfadBjWYxoj3fyxiHE82iDjFGyGKPeVsqMaLJuJxOy6gD0eYQhJVuMIjKnCOSdSiAylslvHTiWF1v8C8XrMaz7oenJfQioxq8tYga3OhxJJzvHde2z0PcqwmG1E3izfkQsxBTrkWGWuQ1uABhRANCsq1SFuDLw0SiIVoEFOuxZc1uNbAZrcnRIPuYAmt1hocaPCKGS2R/0ehr3vTzv19a5DXYBlb2MMx2pxim+ht7KBR1z6CZTzBHEbRi0s049Zp8KI94obVnAZ7wSZmBS0YU/EZPpWc1OxXaryOIRSDvVBEP9awqr+QdJ4WVbHlTWBQ5z97wdPTbKveaWnXna+uHE167Vm8B0XfAgwAj8RQQEL6HPwAAAAASUVORK5CYII="
 		},
 		{
 			text: "About", 
@@ -161,8 +168,12 @@ var labeldlg = api('createDialog', {
 	]
 });
 
+// Add Event-Listeners to GUI
 document.querySelector(`#extension-${extensionId}-dlg`).querySelectorAll('input,select').forEach((el)=>{
-	el.addEventListener('change',previewLabel);
+	el.addEventListener('change',(e)=>{
+		previewLabel();
+		setConfig(el.id,$('#'+el.id).val());
+	});
 	el.addEventListener('keypress',(e)=>{
 		if(e.key=='Enter') {
 			$(`#extension-${extensionId}-text`).select();
@@ -170,8 +181,57 @@ document.querySelector(`#extension-${extensionId}-dlg`).querySelectorAll('input,
 			placeLabel();
 		}
 	});
-})
+});
 
+loadBundledFonts();
+updateFontsCache();
+initDialog();
+Helper.checkUpdate();
+setTimeout(updateFontsCache,1e3); // Files aren't always available right away, so reload later to be safe
+
+
+/*
+	Functions
+*/
+
+function loadBundledFonts() {
+	// Loads *.ttf fonts that were bundled with the extension into EasyEDAs Fonts database
+	const db = simpleDB("DBEasyEDA", 9, [{exportAPI: 'files', storeName: 'files'},{exportAPI: 'fonts', storeName: 'fonts'}]);
+	db.files.get(`extension-${extensionId}`,(files)=>{
+		files.filter(file=>file.name.toLowerCase().endsWith('.ttf')).forEach(file=>{
+			font = opentype.parse(file.contentArrayBuffer);
+			if(font && font.names.fullName) {
+				let nameLanguages = Object.keys(font.names.fullName);
+				let nameLanguage = nameLanguages.includes('en') ? 'en' : nameLanguages[0];
+				let name = font.names.fullName[nameLanguage];
+				db.fonts.put(name,file.contentArrayBuffer);
+				console.log(`Bundled Font "${file.name}" loaded as "${name}"`);
+			} else {
+				console.error(`Bundled Font "${file.name}" was not parsed correctly!`);
+			}
+		})
+	})
+}
+
+function updateFontsCache() {
+    const db = simpleDB("DBEasyEDA", 9, [{exportAPI: 'fonts', storeName: 'fonts'}]);
+    db.fonts.each((cursor,next)=>{
+        if(!opentypeFontCache.map(e=>e.key).includes(cursor.key)) {
+            font = opentype.parse(cursor.value);
+            font.key = cursor.key;
+            font.buffer = cursor.value;
+            opentypeFontCache.push(font);
+        }
+        next();
+    }); 
+}
+
+function initDialog() {
+	// Restore Dialog values from localStorage
+	document.querySelector(`#extension-${extensionId}-dlg`).querySelectorAll('input,select').forEach((el)=>{
+		if(v = getConfig(el.id,false)) $('#'+el.id).val(v);
+	})
+}
 
 function getLabelOptions() {
 	return {
@@ -216,9 +276,9 @@ function previewLabel() {
 
 function reloadFontList() {
 	var el = document.querySelector(`#extension-${extensionId}-font`);
-	var selectedFont = el.value;
+	var selectedFont = el.value || getConfig(el.id);
 	while(e=el.firstChild) el.removeChild(e); // remove all options
-	const fonts = easyeda.extension.instances[extensionId].opentypeFontCache.map((f)=>f.key);
+	const fonts = opentypeFontCache.map((f)=>f.key);
     fonts.forEach( font => {
 		selected = font==selectedFont ? 'selected' : '';
         el.insertAdjacentHTML("beforeend",`<option value="${font}" ${selected}>${font}</option>`);
@@ -232,8 +292,6 @@ function autoScaleViewBox(el) {
 }
 
 function createLabelPath(options) {
-	// Get paper.js instance
-	paper = easyeda.extension.instances[extensionId].paper;
 	// store options in local vars
 	const size = options.size;
 	const paddingV = options.padding.y;
@@ -244,7 +302,11 @@ function createLabelPath(options) {
 	const width = options.width;
 	const textalign = options.textalign;
 	// get opentype.js font instance from cache (generated in loadfonts.js)
-	font = extension.opentypeFontCache.filter(f=>f.key==fontfamily)[0];
+	font = opentypeFontCache.filter(f=>f.key==fontfamily)[0];
+	if(!font) {
+		$.messager.error('Font not found!');
+		return '';
+	}
 	// get Bounds for Char "X" to calculate height (ignore chars below baseline like "y")
 	bbx = font.getPath('X', 0, 0, size).getBoundingBox();
 	const textHeight = bbx.y2 - bbx.y1;

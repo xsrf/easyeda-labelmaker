@@ -1,14 +1,16 @@
 {
 	"name": "Label Maker",
 	"description": "Creates awesome shaped labels",
-	"version": "1.0",
+	"version": "1.1",
 	"homepage": "https://github.com/xsrf/easyeda-labelmaker",
+	"author" : "Andreas Bernhofer",
 	"icons": {
 		"default": "icon.svg"
 	},
 	"scripts": [ 
+		"easyeda-helper.js",
 		"paper-full.min.js",
-		"loadfonts.js",
 		"main.js" 
-	]
+	],
+	"updatebaseurl" : "https://raw.githubusercontent.com/xsrf/easyeda-labelmaker/autoupdate/extension/"
 }
