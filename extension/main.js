@@ -11,7 +11,7 @@ function createCommand(callback) {
 }
 
 api('createToolbarButton', {
-	fordoctype: 'pcb',
+	fordoctype: 'pcb,pcblib',
 	menu:[
 		{
 			text: "Create Label",
