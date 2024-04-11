@@ -69,6 +69,65 @@ var aboutdlg = api('createDialog', {
 	]
 });
 
+var deleteokdlg = api('createDialog', {
+	title: `${manifest.name} - Delete Settings`,
+    content : `
+    <div style="padding: 8px; text-align: center">
+	Are you sure you want to delete this setting ?
+    </div>
+`,
+	width : 320,
+	modal : true,
+	collapsible: false,
+	resizable: false,
+	buttons : [
+		{
+			text : 'Yes',
+			cmd : createCommand(()=>{ 
+				removeSelectedSetting();
+				deleteokdlg.dialog('close');
+			})
+		},
+		{
+			text : 'Cancel',
+			cmd : 'dialog-close'
+		}
+	]
+});
+
+var storesavedlg = api('createDialog', {
+	title: `${manifest.name} - Store Label Settings`,
+    content : `
+    <div style="padding: 8px; text-align: center">
+		<fieldset>
+			<div class="grid">
+			    <label for="extension-${extensionId}-savename" class="i18n">New Save Name</label>
+				<input type="text" id="extension-${extensionId}-savename" value="" placeholder="Label Name" />
+			</div>
+		</fieldset>
+    </div>
+`,
+	width : 320,
+	modal : true,
+	collapsible: false,
+	resizable: false,
+	buttons : [
+		{
+			text : 'Save',
+			cmd : createCommand(()=>{ 
+				saveNewSettings($(`#extension-${extensionId}-savename`).val());
+				storesavedlg.dialog('close');
+				loadStoredSettingsIntoSelect();
+			})
+		},
+		{
+			text : 'Cancel',
+			cmd : 'dialog-close'
+		}
+	]
+});
+
+
 var labeldlg = api('createDialog', {
 	title: `${manifest.name}`,
 	content : `
@@ -96,6 +155,17 @@ var labeldlg = api('createDialog', {
     }
 	</style>
 	<div id="extension-${extensionId}-dlg">
+		<fieldset>
+			<legend class="i18n">Stored</legend>
+			<div>
+				<select id="extension-${extensionId}-stored">
+					<option class="default" value='{"shape-left":"(","text":"GND","shape-right":")","font":"Liberation Sans Bold","size":"9","padding-y":"1","padding-x":"0","width":"0","textalign":"left"}'>Default</option>					
+				</select>
+				<input type="button" id="extension-${extensionId}-storedupdate" value="=" title="Update this stored setting from current values"/>
+				<input type="button" id="extension-${extensionId}-storedsave" value="+" title="Save current values a new stored setting" />
+				<input type="button" id="extension-${extensionId}-storeddelete" value="x" title="Delete this stored setting" style="background-color:red;color: white;font-weight: bold;border: 2px solid black;" />
+			</div>
+		</fieldset>
 		<fieldset>
 			<legend class="i18n">Label</legend>
 			<div>
@@ -169,11 +239,29 @@ var labeldlg = api('createDialog', {
 });
 
 // Add Event-Listeners to GUI
-document.querySelector(`#extension-${extensionId}-dlg`).querySelectorAll('input,select').forEach((el)=>{
+document.querySelector(`#extension-${extensionId}-dlg`).querySelectorAll('input,select,button').forEach((el)=>{
+//console.log('changed:' + el.id + ":" + el.type + ":" + $('#'+el.id).val() );
+
 	el.addEventListener('change',(e)=>{
-		previewLabel();
-		setConfig(el.id,$('#'+el.id).val());
+
+//		console.log('changed:' + el.id + ":" + $('#'+el.id).val());
+		
+		if ( el.id == `extension-${extensionId}-stored` ) {
+			// get value = JSON
+			// 
+			// restore to fields
+			
+			restoreSelectionValues();
+
+			previewLabel();
+		}
+		else {
+			previewLabel();	
+			setConfig(el.id,$('#'+el.id).val());
+		}
+		
 	});
+
 	el.addEventListener('keypress',(e)=>{
 		if(e.key=='Enter') {
 			$(`#extension-${extensionId}-text`).select();
@@ -181,6 +269,24 @@ document.querySelector(`#extension-${extensionId}-dlg`).querySelectorAll('input,
 			placeLabel();
 		}
 	});
+	if ( el.type == "button" ) {
+		if ( el.id == `extension-${extensionId}-storeddelete`) {
+			el.addEventListener('click',(e)=>{				
+				deleteokdlg.dialog('open');	
+			});
+		}
+		else if ( el.id == `extension-${extensionId}-storedsave`){
+			el.addEventListener('click',(e)=>{
+				storesavedlg.dialog('open');
+			});
+		}
+		else if ( el.id == `extension-${extensionId}-storedupdate`){
+			el.addEventListener('click',(e)=>{
+				var dropdown = $(`#extension-${extensionId}-stored`);
+				saveNewSettings(dropdown.find(":selected").text());
+			});
+		}
+	}
 });
 
 loadBundledFonts();
@@ -193,6 +299,100 @@ setTimeout(updateFontsCache,1e3); // Files aren't always available right away, s
 /*
 	Functions
 */
+
+
+function removeSelectedSetting() {
+	var dropdown = $(`#extension-${extensionId}-stored`);
+	
+	var dropdownSelectedText = dropdown.find(":selected").text();
+	
+	Helper.setStoredConfig(dropdownSelectedText,null);
+	
+	loadStoredSettingsIntoSelect();
+}
+function restoreSelectionValues() {
+	//console.log('+restoreSelectionValues');
+	
+	var dropdown = $(`#extension-${extensionId}-stored`);
+	
+	var dropdownSelectedText = dropdown.find(":selected").text() || 'Default';
+	
+	//console.log(":" + dropdownSelectedText);
+	
+	var storedConfig = Helper.getAllStoredConfig();
+
+	//console.log(":" + JSON.stringify(storedConfig));
+	
+	var jp = {};
+	if ( dropdownSelectedText != "" ) jp = JSON.parse(storedConfig[dropdownSelectedText]);
+	
+	//console.log(":" + dropdown.find(":selected").text() + ":" + JSON.stringify(jp) );
+	
+	$.each( jp, function (a,b) { 
+	//	console.log( a + ":" + $(`#extension-${extensionId}-` + a).length + " = " + b );
+		$(`#extension-${extensionId}-` + a).val(b);
+	});
+	
+	//console.log('-restoreSelectionValues');
+
+}
+function loadStoredSettingsIntoSelect() {
+// load stored config from system and populate the dropdown
+	//console.log('+loadStoredSettingsIntoSelect');
+
+	var storedConfig = Helper.getAllStoredConfig();
+
+	//console.log("allStoredCongig:" + JSON.stringify(storedConfig));
+	
+	var dropdown = $(`#extension-${extensionId}-stored`);
+	
+	var dropdownSelectedText = dropdown.find(":selected").text();
+	
+	//dropdown.find('option').not('.default').remove();
+	dropdown.find('option').remove();
+
+	$.each(storedConfig, function (key,value) {
+		dropdown.append(
+			$('<option>', {
+			"value": value,
+			"text": key
+			})
+		);
+		//console.log(key + ":" + JSON.stringify(value));
+	});
+	
+	dropdown.val(dropdownSelectedText);
+
+
+	//console.log('-loadStoredSettingsIntoSelect');
+	
+}
+
+function saveNewSettings(name) {
+// create a new stored config based on current values
+	//console.log('+saveNewSettings' + ' name:' + name.trim());
+	
+	var jsonSave = {};	
+	
+	document.querySelector(`#extension-${extensionId}-dlg`).querySelectorAll('input,select').forEach((el)=>{
+		if ( ('|extension-labelmaker-stored|extension-labelmaker-storedsave|extension-labelmaker-storeddelete|extension-labelmaker-storedupdate|').indexOf('|' + el.id + '|') == -1 ) {
+			
+			//console.log(el.id + ":" + $('#'+el.id).val());
+			
+			var propName = el.id.replace("extension-labelmaker-","");
+			jsonSave[propName] = $('#'+el.id).val();
+			
+			//if(v = getConfig(el.id,false)) $('#'+el.id).val(v);
+		}
+
+	});
+
+	//console.log(name + ":" + JSON.stringify(jsonSave));		
+	
+	Helper.setStoredConfig(name,JSON.stringify(jsonSave));
+	
+	//console.log('-saveNewSettings');
+}
 
 function loadBundledFonts() {
 	// Loads *.ttf fonts that were bundled with the extension into EasyEDAs Fonts database
@@ -231,6 +431,8 @@ function initDialog() {
 	document.querySelector(`#extension-${extensionId}-dlg`).querySelectorAll('input,select').forEach((el)=>{
 		if(v = getConfig(el.id,false)) $('#'+el.id).val(v);
 	})
+	loadStoredSettingsIntoSelect();
+	restoreSelectionValues();
 }
 
 function getLabelOptions() {
