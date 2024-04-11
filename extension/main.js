@@ -127,7 +127,6 @@ var storesavedlg = api('createDialog', {
 	]
 });
 
-
 var labeldlg = api('createDialog', {
 	title: `${manifest.name}`,
 	content : `
@@ -240,26 +239,16 @@ var labeldlg = api('createDialog', {
 
 // Add Event-Listeners to GUI
 document.querySelector(`#extension-${extensionId}-dlg`).querySelectorAll('input,select,button').forEach((el)=>{
-//console.log('changed:' + el.id + ":" + el.type + ":" + $('#'+el.id).val() );
-
+	
 	el.addEventListener('change',(e)=>{
-
-//		console.log('changed:' + el.id + ":" + $('#'+el.id).val());
-		
 		if ( el.id == `extension-${extensionId}-stored` ) {
-			// get value = JSON
-			// 
-			// restore to fields
-			
 			restoreSelectionValues();
-
 			previewLabel();
 		}
 		else {
 			previewLabel();	
 			setConfig(el.id,$('#'+el.id).val());
 		}
-		
 	});
 
 	el.addEventListener('keypress',(e)=>{
@@ -269,6 +258,7 @@ document.querySelector(`#extension-${extensionId}-dlg`).querySelectorAll('input,
 			placeLabel();
 		}
 	});
+
 	if ( el.type == "button" ) {
 		if ( el.id == `extension-${extensionId}-storeddelete`) {
 			el.addEventListener('click',(e)=>{				
@@ -299,56 +289,35 @@ setTimeout(updateFontsCache,1e3); // Files aren't always available right away, s
 /*
 	Functions
 */
-
-
 function removeSelectedSetting() {
 	var dropdown = $(`#extension-${extensionId}-stored`);
-	
 	var dropdownSelectedText = dropdown.find(":selected").text();
-	
 	Helper.setStoredConfig(dropdownSelectedText,null);
-	
 	loadStoredSettingsIntoSelect();
 }
+
 function restoreSelectionValues() {
-	//console.log('+restoreSelectionValues');
 	
 	var dropdown = $(`#extension-${extensionId}-stored`);
-	
 	var dropdownSelectedText = dropdown.find(":selected").text() || 'Default';
-	
-	//console.log(":" + dropdownSelectedText);
-	
 	var storedConfig = Helper.getAllStoredConfig();
-
-	//console.log(":" + JSON.stringify(storedConfig));
 	
 	var jp = {};
 	if ( dropdownSelectedText != "" ) jp = JSON.parse(storedConfig[dropdownSelectedText]);
 	
-	//console.log(":" + dropdown.find(":selected").text() + ":" + JSON.stringify(jp) );
-	
 	$.each( jp, function (a,b) { 
-	//	console.log( a + ":" + $(`#extension-${extensionId}-` + a).length + " = " + b );
 		$(`#extension-${extensionId}-` + a).val(b);
 	});
 	
-	//console.log('-restoreSelectionValues');
-
 }
+
 function loadStoredSettingsIntoSelect() {
 // load stored config from system and populate the dropdown
-	//console.log('+loadStoredSettingsIntoSelect');
 
 	var storedConfig = Helper.getAllStoredConfig();
-
-	//console.log("allStoredCongig:" + JSON.stringify(storedConfig));
-	
 	var dropdown = $(`#extension-${extensionId}-stored`);
-	
 	var dropdownSelectedText = dropdown.find(":selected").text();
-	
-	//dropdown.find('option').not('.default').remove();
+
 	dropdown.find('option').remove();
 
 	$.each(storedConfig, function (key,value) {
@@ -358,40 +327,25 @@ function loadStoredSettingsIntoSelect() {
 			"text": key
 			})
 		);
-		//console.log(key + ":" + JSON.stringify(value));
 	});
 	
 	dropdown.val(dropdownSelectedText);
-
-
-	//console.log('-loadStoredSettingsIntoSelect');
-	
 }
 
 function saveNewSettings(name) {
 // create a new stored config based on current values
-	//console.log('+saveNewSettings' + ' name:' + name.trim());
 	
 	var jsonSave = {};	
 	
 	document.querySelector(`#extension-${extensionId}-dlg`).querySelectorAll('input,select').forEach((el)=>{
 		if ( ('|extension-labelmaker-stored|extension-labelmaker-storedsave|extension-labelmaker-storeddelete|extension-labelmaker-storedupdate|').indexOf('|' + el.id + '|') == -1 ) {
-			
-			//console.log(el.id + ":" + $('#'+el.id).val());
-			
 			var propName = el.id.replace("extension-labelmaker-","");
 			jsonSave[propName] = $('#'+el.id).val();
-			
-			//if(v = getConfig(el.id,false)) $('#'+el.id).val(v);
 		}
 
 	});
-
-	//console.log(name + ":" + JSON.stringify(jsonSave));		
-	
 	Helper.setStoredConfig(name,JSON.stringify(jsonSave));
-	
-	//console.log('-saveNewSettings');
+
 }
 
 function loadBundledFonts() {

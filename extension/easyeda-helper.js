@@ -53,13 +53,9 @@ instance.Helper = class Helper {
     }
 
     static setStoredConfig(key,value) {
-		//console.log('+setStoredConfig');
         var conf = {};
         try {
-            //conf = localStorage.getItem(`extension.${extensionId}.storedconfig`) || '{}';
 			conf = this.getAllStoredConfig();
-			//console.log(conf);
-            //conf = JSON.parse(conf);			
         } catch (error) {
             conf = {};
 			console.log(error);
@@ -68,19 +64,12 @@ instance.Helper = class Helper {
 		
         if(value === null) delete conf[key];
         localStorage.setItem(`extension.${extensionId}.storedconfig`,JSON.stringify(conf));
-
-		//console.log('-setStoredConfig');
-		
     }
 
     static getStoredConfig(key, defaultValue) {
         try {
-            //var conf = localStorage.getItem(`extension.${extensionId}.storedconfig`) || '{}';
-            //conf = JSON.parse(conf);
 			var conf = this.getAllStoredConfig();
-
             if(!(key in conf)) return defaultValue;
-			//console.log("getStoredConfig:"+JSON.stringify(conf));
             return conf[key];
         } catch (error) {
             return defaultValue;
