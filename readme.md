@@ -17,11 +17,27 @@ After install, a "Label Maker" menu should show up in the PCB editor. Click "Cre
 
 Labels are placed to the currently active pcb layer.
 
+## Stored
+This allows you to store a label settings or option (see below) for later recall.
+1) To Store label setting : Click + button, a dialog will open to allow you to provide a name<br/>
+<img src="media/SaveLabel.png" alt="Screenshot of EasyEDAs menu with extension installed"/><br/>Click Save
+
+2) To Recall label settings : Click the dropdown and select your previously saved label.<br/>
+<img src="media/StoredRecall.png" alt="Screenshot of EasyEDAs menu with extension installed"/>
+
+3) To Remove label settings : Select the label from the dropdown (see item 2 above), click the red X Button, a dialog will ask you to confirm removal.<br/>
+<img src="media/OkToRemove.png" alt="Screenshot of EasyEDAs menu with extension installed"/>
+
+**note:
+The stored settings are within the local browser only. <br/>
+An Export / Import function is coming soon (20240415)
+
+
 ### Options
-All measurements in the options are about 0.01 inch or 0.25 mm. I fugured any conversion it is not necessary here because exact measurments are usually not required for labels and you better go by "the looks" of it. Also the actual font family used may affect measurments slightly.
+All measurements in the options are about 0.01 inch or 0.25 mm. I figured any conversion it is not necessary here because exact measurements are usually not required for labels and you better go by "the looks" of it. Also the actual font family used may affect measurments slightly.
 
 ### Font
-You can choose any font that is ailable in EasyEDA except the default ones of EasyEDA (for some reason these are not shipped by EasyEDA but used via API calls). Since you may not have additional fonts installed, this extension comes with one so you have at least one to select from.
+You can choose any font that is available in EasyEDA except the default ones of EasyEDA (for some reason these are not shipped by EasyEDA but used via API calls). Since you may not have additional fonts installed, this extension comes with one so you have at least one to select from.
 You can install additional fonts (ttf, otf or woff) via EasyEDAs *Fonts Manager*. You may have to hit "Rebuild Fonts Cache" after you installed a new font.
 
 *Tipp:* On Windows, drag'n'drop fonts from the system fonts directory to a regular directory to get access to the ttf files. You can access the fonts directory by running (Win+R) "shell:fonts".

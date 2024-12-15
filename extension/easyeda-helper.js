@@ -52,6 +52,41 @@ instance.Helper = class Helper {
         }	
     }
 
+    static setStoredConfig(key,value) {
+        var conf = {};
+        try {
+			conf = this.getAllStoredConfig();
+        } catch (error) {
+            conf = {};
+			console.log(error);
+        }
+        conf[key] = value;
+		
+        if(value === null) delete conf[key];
+        localStorage.setItem(`extension.${extensionId}.storedconfig`,JSON.stringify(conf));
+    }
+
+    static getStoredConfig(key, defaultValue) {
+        try {
+			var conf = this.getAllStoredConfig();
+            if(!(key in conf)) return defaultValue;
+            return conf[key];
+        } catch (error) {
+            return defaultValue;
+        }
+    }
+
+    static getAllStoredConfig() {
+        try {
+            var conf = localStorage.getItem(`extension.${extensionId}.storedconfig`) || '{}';
+            conf = JSON.parse(conf);
+			conf['Default'] = JSON.stringify({"shape-left":"(","text":"GND","shape-right":")","font":"Liberation Sans Bold","size":"9","padding-y":"1","padding-x":"0","width":"0","textalign":"left"});
+            return conf;
+        } catch (error) {
+            return {};
+        }
+    }
+	
     static setConfig(key,value) {
         var conf = {};
         try {
